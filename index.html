@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full PC Control</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #0f0;
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
+            padding: 20px;
+            margin: 0;
+            overflow: hidden;
+        }
+        #terminal-container {
+            height: 95vh;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #0f0;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        #output-area {
+            flex-grow: 1;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-bottom: 10px;
+        }
+        #input-container {
+            display: flex;
+        }
+        #prompt {
+            color: #0f0;
+            white-space: pre;
+            margin-right: 5px;
+        }
+        #command-input {
+            background-color: #000;
+            color: #0f0;
+            border: none;
+            flex-grow: 1;
+            caret-color: #fff;
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="terminal-container">
+        <div id="output-area">Welcome to the Web PC Control Terminal. Use with caution.</div>
+        <div id="input-container">
+            <span id="prompt">></span><input type="text" id="command-input" autofocus>
+        </div>
+    </div>
+
+    <script>
+        const commandInput = document.getElementById('command-input');
+        const outputArea = document.getElementById('output-area');
+        let commandHistory = [];
+        let historyIndex = -1;
+
+        // Focus the input field when the page loads
+        commandInput.focus();
+
+        commandInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const command = commandInput.value.trim();
+                if (command === '') {
+                    return;
+                }
+                
+                // Add command to history
+                commandHistory.push(command);
+                historyIndex = commandHistory.length;
+                
+                executeCommand(command);
+                commandInput.value = '';
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    commandInput.value = commandHistory[historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    commandInput.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    commandInput.value = '';
+                }
+            }
+        });
+
+        function executeCommand(command) {
+            // Append the command to the output area to simulate a terminal
+            outputArea.textContent += '\n> ' + command + '\n';
+
+            // Send the command to the Python server
+            fetch('/execute_command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ command: command }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Append the output from the server
+                outputArea.textContent += data.output;
+                // Scroll to the bottom to show the latest output
+                outputArea.scrollTop = outputArea.scrollHeight;
+            })
+            .catch(error => {
+                outputArea.textContent += '\nAn error occurred while fetching the response.';
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
+</html>
